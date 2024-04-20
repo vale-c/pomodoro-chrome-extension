@@ -72,13 +72,19 @@ export const Pomodoro: FunctionComponent = () => {
     return `${minutes}:${secondsLeft < 10 ? "0" : ""}${secondsLeft}`;
   };
 
-  const getProgressBarWidth = () => {
-    const totalDuration =
-      sessionType === "focus" ? focusDuration : breakDuration;
-    return `${((totalDuration - timeLeft) / totalDuration) * 100}%`;
+  const getProgress = () => {
+    return 100 * (1 - timeLeft / focusDuration);
   };
 
   const toggleSettings = () => setShowSettings(!showSettings);
+
+  const getPomodoroColor = () => {
+    if (sessionType === "break") {
+      return `conic-gradient(#ff6b6b ${getProgress()}%, #4caf50 0%)`;
+    } else {
+      return `conic-gradient(#4caf50 ${getProgress()}%, #ff6b6b 0%)`;
+    }
+  }
 
   return (
     <div className="flex flex-col items-center justify-center h-screen bg-gradient-to-br from-[#ff6b6b] to-[#4caf50]">
@@ -119,40 +125,40 @@ export const Pomodoro: FunctionComponent = () => {
             onClose={toggleSettings}
           />
         )}
-        <div className="text-center">
-          <div className="text-8xl font-bold text-[#ff6b6b]">
-            {formatTime(timeLeft)}
+  
+        <div className="flex items-center justify-center text-center">
+          <div
+            className="flex items-center justify-center w-[260px] h-[260px] rounded-full"
+            style={{
+              background: getPomodoroColor(),
+            }}
+          >
+            <div className="text-6xl font-bold text-white drop-shadow-xl">
+              {formatTime(timeLeft)}
+            </div>
           </div>
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={handleStartPause}
-              className={`mr-4 px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${
-                sessionType === "focus"
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-blue-600 hover:bg-blue-700"
-              } text-white`}
-            >
-              {isRunning ? "Pause" : "Start"}
-            </button>
-            <button
-              onClick={handleReset}
-              className="px-6 py-2 rounded-lg bg-gray-500 hover:bg-gray-600 text-white font-semibold transition-colors duration-200"
-            >
-              Reset
-            </button>
-          </div>
+        </div>
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={handleStartPause}
+            className={`mr-4 px-6 py-2 rounded-lg font-semibold transition-colors duration-200 ${
+              sessionType === "focus"
+                ? "bg-gray-600 hover:bg-gray-700"
+                : "bg-blue-600 hover:bg-blue-700"
+            } text-white`}
+          >
+            {isRunning ? "Pause" : "Start"}
+          </button>
+          <button
+            onClick={handleReset}
+            className="px-6 py-2 rounded-lg bg-gray-400 hover:bg-gray-500 text-white font-semibold transition-colors duration-200"
+          >
+            Reset
+          </button>
         </div>
         <div className="mt-8 flex justify-between items-center">
-          <div className="text-gray-500">Focus: {focusDuration / 60} min</div>
-          <div className="text-gray-500">Break: {breakDuration / 60} min</div>
-        </div>
-        <div className="mt-4">
-          <div className="h-2 bg-gray-200 rounded-full">
-            <div
-              className="h-2 bg-[#4caf50] rounded-full"
-              style={{ width: getProgressBarWidth() }}
-            />
-          </div>
+          <div className="font-medium text-gray-500"><span className="font-semibold">Focus: </span>{focusDuration / 60} min</div>
+          <div className="font-medium text-gray-500"><span className="font-semibold">Break: </span>{breakDuration / 60} min</div>
         </div>
       </div>
     </div>
