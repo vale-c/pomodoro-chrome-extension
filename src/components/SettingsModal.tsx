@@ -41,7 +41,7 @@ export const SettingsModal: FunctionComponent<SettingsModalProps> = ({
       newBreakDuration <= 0
     ) {
       setError(
-        "Please enter valid number of minutes for both focus and break durations."
+        "Please enter valid numbers."
       );
     } else {
       setFocusDuration(newFocusDuration);
