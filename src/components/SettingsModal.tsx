@@ -1,33 +1,37 @@
-import React, { useState, useEffect, FunctionComponent } from "react";
+import React, { useState, useEffect } from "react";
 
-interface SettingsModalProps {
+type SettingsModalProps = {
   setFocusDuration: (duration: number) => void;
   setBreakDuration: (duration: number) => void;
   onClose: () => void;
 }
 
-export const SettingsModal: FunctionComponent<SettingsModalProps> = ({
+export const SettingsModal = ({
   setFocusDuration,
   setBreakDuration,
   onClose,
-}) => {
+}: SettingsModalProps) => {
   const [focusInput, setFocusInput] = useState("");
   const [breakInput, setBreakInput] = useState("");
+
   const [error, setError] = useState("");
 
+  // useEffect to add the event listener for the escape key
   useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (event.target === event.currentTarget) {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
         onClose();
       }
     };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [onClose]);
 
-    // Attach when component mounts
-    window.addEventListener("click", handleOutsideClick);
-
-    // Cleanup on unmount
-    return () => window.removeEventListener("click", handleOutsideClick);
-  }, []);
+  const handleOutsideClick = (event: React.MouseEvent<HTMLDivElement>) => {
+    if (event.target === event.currentTarget) {
+      onClose();
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault(); // Prevent form submission from reloading the page
@@ -40,9 +44,7 @@ export const SettingsModal: FunctionComponent<SettingsModalProps> = ({
       newFocusDuration <= 0 ||
       newBreakDuration <= 0
     ) {
-      setError(
-        "Please enter valid numbers."
-      );
+      setError("Please enter valid numbers.");
     } else {
       setFocusDuration(newFocusDuration);
       setBreakDuration(newBreakDuration);
@@ -53,7 +55,7 @@ export const SettingsModal: FunctionComponent<SettingsModalProps> = ({
   return (
     <div
       className="fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center z-10"
-      onClick={onClose}
+      onClick={handleOutsideClick}
     >
       <div
         className="bg-white p-5 rounded-lg"
