@@ -2,6 +2,10 @@
   "manifest_version": 3,
   "name": "Focused - Pomodoro timer",
   "version": "1.0.0",
+  "permissions": ["alarms", "storage"],
+  "background": {
+    "service_worker": "./src/background.js"
+  },
   "action": { "default_popup": "index.html" },
   "icons": {
     "16": "icon_logo_16px.png",

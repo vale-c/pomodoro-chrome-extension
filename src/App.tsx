@@ -1,9 +1,9 @@
-import { Pomodoro } from "./components/Pomodoro";
+import { PomodoroTimer } from './components/PomodoroTimer';
 
 function App() {
   return (
     <div className="container w-[25rem] p-1 bg-zinc-800">
-      <Pomodoro />
+      <PomodoroTimer />
     </div>
   );
 }
