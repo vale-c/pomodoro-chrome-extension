@@ -1,8 +1,7 @@
 import { useEffect, useState } from 'react';
 import success from '../assets/success.mp3';
 
-const DEFAULT_FOCUS_DURATION = 1500; // 25 minutes
-const DEFAULT_BREAK_DURATION = 300; // 5 minutes
+import { DEFAULT_BREAK_DURATION, DEFAULT_FOCUS_DURATION } from '../constants';
 
 const audio = new Audio(success);
 
