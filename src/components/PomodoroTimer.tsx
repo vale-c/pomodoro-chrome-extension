@@ -5,12 +5,18 @@ import { DEFAULT_BREAK_DURATION, DEFAULT_FOCUS_DURATION } from '../constants';
 
 const audio = new Audio(success);
 
+const MAX_STROKE_LENGTH = 2 * Math.PI * 120;
+
+const formatTime = (time: number) => {
+  const minutes = Math.floor(time / 60);
+  const seconds = `0${time % 60}`.slice(-2);
+  return `${minutes}:${seconds}`;
+};
+
 export const PomodoroTimer = () => {
   const [timer, setTimer] = useState(DEFAULT_FOCUS_DURATION);
   const [isActive, setIsActive] = useState(false);
   const [sessionType, setSessionType] = useState('focus'); // 'focus' or 'break'
-
-  const MAX_STROKE_LENGTH = 2 * Math.PI * 120;
 
   const toggle = () => {
     if (!isActive && timer <= 0) {
@@ -84,12 +90,6 @@ export const PomodoroTimer = () => {
 
     return () => clearInterval(interval);
   }, [sessionType]);
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = `0${time % 60}`.slice(-2);
-    return `${minutes}:${seconds}`;
-  };
 
   return (
     <div className="flex flex-col items-center justify-center h-screen">
