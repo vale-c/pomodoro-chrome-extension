@@ -1,45 +1,84 @@
 import { useEffect, useState } from 'react';
-import success from '../assets/success.mp3';
-
+import completed from '../assets/completed.mp3';
 import { DEFAULT_BREAK_DURATION, DEFAULT_FOCUS_DURATION } from '../constants';
-
-const audio = new Audio(success);
 
 const MAX_STROKE_LENGTH = 2 * Math.PI * 120;
 
-const formatTime = (time: number) => {
-  const minutes = Math.floor(time / 60);
-  const seconds = `0${time % 60}`.slice(-2);
-  return `${minutes}:${seconds}`;
-};
+const audio = new Audio(completed);
 
 export const PomodoroTimer = () => {
   const [timer, setTimer] = useState(DEFAULT_FOCUS_DURATION);
   const [isActive, setIsActive] = useState(false);
-  const [sessionType, setSessionType] = useState('focus'); // 'focus' or 'break'
+  const [sessionType, setSessionType] = useState('focus');
 
-  const toggle = () => {
-    if (!isActive && timer <= 0) {
-      // Reset timer when completed and starting a new session
-      const duration =
-        sessionType === 'focus'
-          ? DEFAULT_FOCUS_DURATION
-          : DEFAULT_BREAK_DURATION;
-      setTimer(duration);
-      chrome.storage.local.set({ timer: duration });
+  useEffect(() => {
+    const syncStateWithStorage = () => {
+      chrome.storage.local.get(
+        ['timer', 'isActive', 'sessionType'],
+        (result) => {
+          if (result.timer !== undefined) setTimer(result.timer);
+          if (result.isActive !== undefined) setIsActive(result.isActive);
+          if (result.sessionType) setSessionType(result.sessionType);
+        }
+      );
+    };
+
+    syncStateWithStorage();
+    const interval = setInterval(syncStateWithStorage, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    let countdown: number | undefined;
+
+    if (isActive && timer > 0) {
+      countdown = window.setInterval(() => {
+        setTimer(timer - 1);
+      }, 1000);
     }
 
-    const newState = !isActive;
-    chrome.storage.local.set({ isActive: newState });
-    setIsActive(newState);
+    // When timer reaches zero, stop and reset for the opposite session.
+    if (timer === 0) {
+      const nextSessionType = sessionType === 'focus' ? 'break' : 'focus';
+      const duration =
+        nextSessionType === 'focus'
+          ? DEFAULT_FOCUS_DURATION
+          : DEFAULT_BREAK_DURATION;
+
+      clearInterval(countdown);
+      setIsActive(false);
+      setSessionType(nextSessionType);
+      setTimer(duration);
+      chrome.storage.local.set({
+        sessionType: nextSessionType,
+        timer: duration,
+        isActive: false,
+      });
+      audio.play();
+    }
+
+    return () => {
+      clearInterval(countdown);
+    };
+  }, [timer, isActive, sessionType]);
+
+  const toggle = () => {
+    setIsActive(!isActive);
+    chrome.storage.local.set({ isActive: !isActive });
   };
 
   const reset = () => {
     const duration =
       sessionType === 'focus' ? DEFAULT_FOCUS_DURATION : DEFAULT_BREAK_DURATION;
-    chrome.storage.local.set({ timer: duration, isActive: false });
-    setTimer(duration);
     setIsActive(false);
+    setTimer(duration);
+    chrome.storage.local.set({ timer: duration, isActive: false });
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = `0${time % 60}`.slice(-2);
+    return `${minutes}:${seconds}`;
   };
 
   const getProgress = () => {
@@ -48,52 +87,9 @@ export const PomodoroTimer = () => {
     return ((duration - timer) / duration) * 100;
   };
 
-  useEffect(() => {
-    chrome.storage.local.get(['timer', 'isActive', 'sessionType'], (result) => {
-      setTimer(result.timer);
-      setIsActive(result.isActive);
-      setSessionType(result.sessionType || 'focus');
-    });
-
-    const interval = setInterval(() => {
-      chrome.storage.local.get(
-        ['timer', 'isActive', 'sessionType'],
-        (result) => {
-          setTimer(result.timer);
-          setIsActive(result.isActive);
-          setSessionType(result.sessionType || 'focus');
-
-          if (result.isActive && result.timer <= 0) {
-            audio.play();
-            setIsActive(false);
-            chrome.storage.local.set({ isActive: false });
-
-            if (sessionType === 'focus') {
-              setSessionType('break');
-              setTimer(DEFAULT_BREAK_DURATION);
-              chrome.storage.local.set({
-                sessionType: 'break',
-                timer: DEFAULT_BREAK_DURATION,
-              });
-            } else {
-              setSessionType('focus');
-              setTimer(DEFAULT_FOCUS_DURATION);
-              chrome.storage.local.set({
-                sessionType: 'focus',
-                timer: DEFAULT_FOCUS_DURATION,
-              });
-            }
-          }
-        }
-      );
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [sessionType]);
-
   return (
     <div className="flex flex-col items-center justify-center h-screen">
-      <div className="flex items-center justify-center">
+      <div className="flex items-center justify-center text-center">
         <svg width="260" height="260" className="relative">
           <circle
             cx="130"
@@ -111,7 +107,7 @@ export const PomodoroTimer = () => {
             stroke={sessionType === 'focus' ? '#ff6b6b' : '#4caf50'}
             strokeWidth="20"
             strokeDasharray={MAX_STROKE_LENGTH}
-            strokeDashoffset={MAX_STROKE_LENGTH * (getProgress() / 100)}
+            strokeDashoffset={(MAX_STROKE_LENGTH * getProgress()) / 100}
             transform="rotate(-90 130 130)"
           />
           <text

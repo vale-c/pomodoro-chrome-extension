@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Focused - A minimalist Pomodoro timer",
+  "version": "1.0.0",
+  "action": { "default_popup": "index.html" },
+  "icons": {
+    "16": "icon_logo_16px.png",
+    "32": "icon_logo_32px.png",
+    "48": "icon_logo_48px.png",
+    "128": "icon_logo_128px.png"
+  },
+  "background": {
+    "service_worker": "src/background/index.ts"
+  },
+  "permissions": ["alarms", "notifications", "storage", "activeTab", "tabs"],
+  "web_accessible_resources": [
+    {
+      "resources": [ "src/assets/*"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+  
+}
