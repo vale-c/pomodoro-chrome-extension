@@ -4,9 +4,9 @@ import { DEFAULT_BREAK_DURATION, DEFAULT_FOCUS_DURATION } from '../constants';
 
 const MAX_STROKE_LENGTH = 2 * Math.PI * 120;
 
-const audio = new Audio(completed);
-
 export const PomodoroTimer = () => {
+  const audio = new Audio(completed);
+
   const [timer, setTimer] = useState(DEFAULT_FOCUS_DURATION);
   const [isActive, setIsActive] = useState(false);
   const [sessionType, setSessionType] = useState('focus');
@@ -16,13 +16,12 @@ export const PomodoroTimer = () => {
       chrome.storage.local.get(
         ['timer', 'isActive', 'sessionType'],
         (result) => {
-          if (result.timer !== undefined) setTimer(result.timer);
-          if (result.isActive !== undefined) setIsActive(result.isActive);
+          if (result.timer) setTimer(result.timer);
+          if (result.isActive) setIsActive(result.isActive);
           if (result.sessionType) setSessionType(result.sessionType);
         }
       );
     };
-
     syncStateWithStorage();
     const interval = setInterval(syncStateWithStorage, 1000);
     return () => clearInterval(interval);
@@ -38,7 +37,7 @@ export const PomodoroTimer = () => {
     }
 
     // When timer reaches zero, stop and reset for the opposite session.
-    if (timer === 0) {
+    if (timer <= 0) {
       const nextSessionType = sessionType === 'focus' ? 'break' : 'focus';
       const duration =
         nextSessionType === 'focus'
@@ -64,7 +63,19 @@ export const PomodoroTimer = () => {
 
   const toggle = () => {
     setIsActive(!isActive);
-    chrome.storage.local.set({ isActive: !isActive });
+    chrome.storage.local.set({ isActive: !isActive }, () => {
+      if (!isActive) {
+        // If it was not active and now is starting
+        chrome.storage.local.get('sessionType', (data) => {
+          const duration =
+            data.sessionType === 'focus'
+              ? DEFAULT_FOCUS_DURATION
+              : DEFAULT_BREAK_DURATION;
+          setTimer(duration);
+          chrome.storage.local.set({ timer: duration });
+        });
+      }
+    });
   };
 
   const reset = () => {
