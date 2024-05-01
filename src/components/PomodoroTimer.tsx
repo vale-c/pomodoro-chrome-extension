@@ -1,95 +1,62 @@
 import { useEffect, useState } from 'react';
 import completed from '../assets/completed.mp3';
 import { DEFAULT_BREAK_DURATION, DEFAULT_FOCUS_DURATION } from '../constants';
+import { formatTime } from '../background';
 
 const MAX_STROKE_LENGTH = 2 * Math.PI * 120;
+const audio = new Audio(completed);
 
 export const PomodoroTimer = () => {
-  const audio = new Audio(completed);
-
   const [timer, setTimer] = useState(DEFAULT_FOCUS_DURATION);
   const [isActive, setIsActive] = useState(false);
   const [sessionType, setSessionType] = useState('focus');
 
-  useEffect(() => {
-    const syncStateWithStorage = () => {
-      chrome.storage.local.get(
-        ['timer', 'isActive', 'sessionType'],
-        (result) => {
-          if (result.timer) setTimer(result.timer);
-          if (result.isActive) setIsActive(result.isActive);
-          if (result.sessionType) setSessionType(result.sessionType);
-        }
-      );
-    };
-    syncStateWithStorage();
-    const interval = setInterval(syncStateWithStorage, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  const prepareNextSession = () => {
+    const nextSessionType = sessionType === 'focus' ? 'break' : 'focus';
+    const duration =
+      nextSessionType === 'focus'
+        ? DEFAULT_FOCUS_DURATION
+        : DEFAULT_BREAK_DURATION;
+    setSessionType(nextSessionType);
+    setTimer(duration); // Update timer but do not start it automatically
+  };
 
   useEffect(() => {
-    let countdown: number | undefined;
-
-    if (isActive && timer > 0) {
-      countdown = window.setInterval(() => {
-        setTimer(timer - 1);
+    let interval: number | null = null;
+    if (isActive) {
+      interval = window.setInterval(() => {
+        setTimer((prevTimer) => {
+          if (prevTimer <= 1) {
+            clearInterval(interval!);
+            return 0;
+          }
+          return prevTimer - 1;
+        });
       }, 1000);
     }
 
-    // When timer reaches zero, stop and reset for the opposite session.
-    if (timer <= 0) {
-      const nextSessionType = sessionType === 'focus' ? 'break' : 'focus';
-      const duration =
-        nextSessionType === 'focus'
-          ? DEFAULT_FOCUS_DURATION
-          : DEFAULT_BREAK_DURATION;
-
-      clearInterval(countdown);
-      setIsActive(false);
-      setSessionType(nextSessionType);
-      setTimer(duration);
-      chrome.storage.local.set({
-        sessionType: nextSessionType,
-        timer: duration,
-        isActive: false,
-      });
-      audio.play();
-    }
-
     return () => {
-      clearInterval(countdown);
+      if (interval) clearInterval(interval);
     };
-  }, [timer, isActive, sessionType]);
+  }, [isActive]);
+
+  useEffect(() => {
+    if (timer === 0) {
+      audio.play();
+      setIsActive(false); // Stop the timer
+      prepareNextSession();
+    }
+  }, [timer]);
 
   const toggle = () => {
-    setIsActive(!isActive);
-    chrome.storage.local.set({ isActive: !isActive }, () => {
-      if (!isActive) {
-        // If it was not active and now is starting
-        chrome.storage.local.get('sessionType', (data) => {
-          const duration =
-            data.sessionType === 'focus'
-              ? DEFAULT_FOCUS_DURATION
-              : DEFAULT_BREAK_DURATION;
-          setTimer(duration);
-          chrome.storage.local.set({ timer: duration });
-        });
-      }
-    });
+    setIsActive(!isActive); // Toggle the current state to start or pause the timer
   };
 
   const reset = () => {
-    const duration =
+    const initialDuration =
       sessionType === 'focus' ? DEFAULT_FOCUS_DURATION : DEFAULT_BREAK_DURATION;
+    setTimer(initialDuration);
     setIsActive(false);
-    setTimer(duration);
-    chrome.storage.local.set({ timer: duration, isActive: false });
-  };
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = `0${time % 60}`.slice(-2);
-    return `${minutes}:${seconds}`;
   };
 
   const getProgress = () => {

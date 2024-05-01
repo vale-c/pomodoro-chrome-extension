@@ -12,12 +12,11 @@
   "background": {
     "service_worker": "src/background/index.ts"
   },
-  "permissions": ["alarms", "notifications", "storage", "activeTab", "tabs"],
+  "permissions": ["alarms", "notifications", "storage", "scripting", "activeTab", "offscreen", "tabs"],
   "web_accessible_resources": [
     {
-      "resources": [ "src/assets/*"],
+      "resources": ["src/assets/*"],
       "matches": ["<all_urls>"]
     }
   ]
-  
 }
